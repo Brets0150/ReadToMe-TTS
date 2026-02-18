@@ -1,0 +1,10 @@
+models/*.onnx
+models/*.onnx.json
+dist/
+build/
+*.spec.bak
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.wine-build/

@@ -1,0 +1,30 @@
+[project]
+name = "readtome-tts"
+version = "0.2.0"
+description = "Highlight text and hear it read aloud via Piper TTS"
+requires-python = ">=3.10"
+dependencies = [
+    "piper-tts>=1.2.0",
+    "sounddevice>=0.5.0",
+    "keyboard>=0.13.5",
+    "pyperclip>=1.9.0",
+    "pystray>=0.19.5",
+    "Pillow>=10.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0",
+    "pytest>=8.0",
+]
+
+[project.scripts]
+readtome = "readtome.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["readtome*"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
