@@ -30,7 +30,7 @@ SPEED_PRESETS = {
 
 @dataclass
 class Config:
-    hotkey: str = "ctrl+shift+s"
+    hotkey: str = "alt+shift"
     speed: float = 1.0
     pitch: float = 1.0
     model_path: str = ""

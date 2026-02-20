@@ -32,11 +32,17 @@ After launching ReadToMe, look for the icon in your Windows system tray (bottom-
 | **Speed** | Adjust reading speed (0.75x to 2.0x) |
 | **Pitch** | Adjust voice pitch (Very Low to Very High) |
 | **Pause** | Temporarily disable the hotkey (toggle) |
-| **Configure Shortcut** | Set a new hotkey (must include Ctrl+Shift + another key) |
+| **Configure Shortcut** | Set a new hotkey — any 2+ key combination, including modifier-only combos |
 | **Start on Login** | Toggle automatic startup when you log into Windows |
 | **Quit** | Exit the application |
 
-The default hotkey is **Ctrl+Shift+S**. Your settings are saved to `%USERPROFILE%\.readtome\config.json` and persist across restarts.
+The default hotkey is **Alt+Shift**. Your settings are saved to `%USERPROFILE%\.readtome\config.json` and persist across restarts.
+
+### Hotkey Tips
+
+ReadToMe supports any key combination with at least two keys, including **modifier-only** combinations like Alt+Shift or Ctrl+Alt.
+
+Using modifier-only hotkeys is recommended because many applications — especially **remote desktop clients** (RDP, Citrix, VMware Horizon, etc.) — perform full keystroke capture and forward all key combinations to the remote system. This means a hotkey like Ctrl+Shift+S pressed locally would be sent to the remote machine instead of triggering ReadToMe. Modifier keys on their own, however, are typically not forwarded in the same way, so a modifier-only hotkey like Alt+Shift will reliably trigger ReadToMe on the local machine regardless of what application has focus.
 
 ## Developer Setup
 

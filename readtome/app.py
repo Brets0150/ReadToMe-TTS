@@ -168,13 +168,13 @@ class ReadToMeApp:
     def _configure_shortcut(self, icon, item):
         """Called from tray menu. Starts hotkey capture mode."""
         logger.info("Configure Shortcut clicked — waiting for key combination...")
-        self._tray.update_tooltip("ReadToMe - Press shortcut now (Ctrl+Shift+?)")
+        self._tray.update_tooltip("ReadToMe - Press your new shortcut now...")
         self._hotkey.capture_new_hotkey(self._on_hotkey_captured)
 
     def _on_hotkey_captured(self, new_hotkey: str | None):
         """Called from capture thread when user presses a key combo."""
         if new_hotkey is None:
-            logger.warning("Invalid shortcut — must include Ctrl+Shift + another key")
+            logger.warning("Invalid shortcut — must be at least a 2-key combination")
             self._tray.update_tooltip("ReadToMe - Invalid shortcut, keeping old one")
             time.sleep(2)
             self._update_ready_tooltip()

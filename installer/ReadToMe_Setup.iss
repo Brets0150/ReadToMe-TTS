@@ -63,3 +63,8 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: no
 [UninstallRun]
 ; Kill the app before uninstalling
 Filename: "taskkill"; Parameters: "/F /IM {#MyAppExeName}"; Flags: runhidden; RunOnceId: "KillApp"
+
+[UninstallDelete]
+; Clean up user config directory
+Type: files; Name: "{%USERPROFILE}\.readtome\config.json"
+Type: dirifempty; Name: "{%USERPROFILE}\.readtome"
