@@ -20,6 +20,7 @@ class TrayIcon:
         on_change_speed,
         on_change_pitch,
         on_toggle_startup,
+        on_check_update,
         is_paused,
         get_status,
         get_voices,
@@ -34,6 +35,7 @@ class TrayIcon:
         self._on_change_speed = on_change_speed
         self._on_change_pitch = on_change_pitch
         self._on_toggle_startup = on_toggle_startup
+        self._on_check_update = on_check_update
         self._is_paused = is_paused
         self._get_status = get_status
         self._get_voices = get_voices
@@ -152,6 +154,7 @@ class TrayIcon:
                 checked=lambda item: Config.get_startup_enabled(),
             ),
             pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Check for Updates", self._on_check_update),
             pystray.MenuItem("Quit", self._on_quit),
         )
 

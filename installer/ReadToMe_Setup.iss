@@ -5,7 +5,7 @@
 ; Or from command line: iscc installer\ReadToMe_Setup.iss
 
 #define MyAppName "ReadToMe"
-#define MyAppVersion "0.2.0"
+#define MyAppVersion "0.3.0"
 #define MyAppPublisher "ReadToMe"
 #define MyAppExeName "ReadToMe.exe"
 #define MyAppDescription "Highlight text anywhere and hear it read aloud"
@@ -18,7 +18,7 @@ AppId={{B8F3A1E2-7C4D-4E5F-9A1B-2C3D4E5F6A7B}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-AppSupportURL=https://github.com/CyberGladius/ReadToMe-TTS
+AppSupportURL=https://github.com/Brets0150/ReadToMe-TTS
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 ; No license page — remove or set LicenseFile if you add a LICENSE

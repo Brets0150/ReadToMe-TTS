@@ -75,6 +75,7 @@ After launching ReadToMe, look for the icon in your Windows system tray (bottom-
 | **Pause** | Temporarily disable the hotkey (toggle) |
 | **Configure Shortcut** | Set a new hotkey — any 2+ key combination, including modifier-only combos |
 | **Start on Login** | Toggle automatic startup when you log into Windows |
+| **Check for Updates** | Check GitHub for a newer release and optionally download/install it |
 | **Quit** | Exit the application |
 
 The default hotkey is **Alt+Shift**. Your settings are saved to `%USERPROFILE%\.readtome\config.json` and persist across restarts.
@@ -150,10 +151,6 @@ For more verbose output, open a Command Prompt and run:
 ```
 
 The `-d` (debug) flag enables detailed logging to both the log file and the console window.
-
-### Speech stops working after changing settings
-
-Occasionally, changing the voice, hotkey, or speed while the application is running may cause it to stop reading aloud. If this happens, close ReadToMe from the system tray and reopen it. Your configuration changes are saved automatically and will persist — the app should work normally after restarting.
 
 ### Debug mode from a portable build
 

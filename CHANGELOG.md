@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-02-21
+
 ### Added
+- Check for Updates — menu option in system tray to check GitHub for newer releases, with automatic download and install for installed builds
+- Configurable `GITHUB_REPO` constant in `readtome/__init__.py` so forks can point to their own repository
 - File logging — application always writes to `%USERPROFILE%\.readtome\readtome.log` for troubleshooting
 - Debug mode (`--debug` / `-d` flag) for verbose console and file logging
 - Top-level exception handler captures fatal startup errors to the log file
@@ -21,8 +25,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Build process now 6 steps (added portable zips and VC++ Redistributable download)
 - Version number read from pyproject.toml instead of hardcoded in build script
 - Build scripts now require Python 3.12 (3.14+ has NumPy crash on target systems)
+- Installer `AppSupportURL` corrected to point to the right GitHub repository
 
 ### Fixed
+- Speech permanently stops working after interrupting playback with a rapid double hotkey press (stop event was never cleared between speech attempts)
 - Application crash on clean systems due to Python 3.14 NumPy native extension incompatibility
 - Application crash on target systems caused by NumPy 2.x ABI incompatibility with onnxruntime (pinned NumPy < 2.0)
 - Installer now installs to `C:\Program Files\` instead of `C:\Program Files (x86)\` on 64-bit systems

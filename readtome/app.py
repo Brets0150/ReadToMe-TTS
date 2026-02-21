@@ -27,6 +27,7 @@ class ReadToMeApp:
             on_change_speed=self._change_speed,
             on_change_pitch=self._change_pitch,
             on_toggle_startup=self._toggle_startup,
+            on_check_update=self._check_for_updates,
             is_paused=lambda: self._paused,
             get_status=self._get_status_text,
             get_voices=Config.list_available_voices,
@@ -100,6 +101,7 @@ class ReadToMeApp:
 
     def _speak_streaming(self, text: str):
         """Stream synthesis: play each sentence chunk as it's generated."""
+        self._player.reset()
         chunk_num = 0
         t_start = time.perf_counter()
         t_first_chunk = None
@@ -118,7 +120,7 @@ class ReadToMeApp:
                     chunk_num, len(samples), len(samples) / sr,
                 )
 
-            if self._player._stop_event.is_set():
+            if self._player.is_stopped:
                 logger.debug("Stop requested, breaking at chunk %d", chunk_num)
                 break
 
@@ -202,6 +204,15 @@ class ReadToMeApp:
         if self._speaking:
             return "Speaking..."
         return "Ready"
+
+    def _check_for_updates(self, icon, item):
+        """Check GitHub for a newer release. Runs in background thread."""
+        thread = threading.Thread(target=self._do_check_update, daemon=True)
+        thread.start()
+
+    def _do_check_update(self):
+        from readtome.updater import check_for_update
+        check_for_update()
 
     def _quit(self, icon, item):
         self._player.stop()

@@ -49,7 +49,16 @@ class AudioPlayer:
         self._stop_event.set()
         sd.stop()
 
+    def reset(self):
+        """Clear the stop flag so new playback can proceed."""
+        self._stop_event.clear()
+
     @property
     def is_playing(self) -> bool:
         with self._lock:
             return self._playing
+
+    @property
+    def is_stopped(self) -> bool:
+        """Check if a stop has been requested."""
+        return self._stop_event.is_set()
