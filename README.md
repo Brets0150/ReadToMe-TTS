@@ -6,6 +6,36 @@ Built with [Piper TTS](https://github.com/rhasspy/piper) for fast, high-quality 
 
 > **Windows only.** This application was designed and tested exclusively for Windows. It has not been written for or tested on Linux or macOS.
 
+## Table of Contents
+
+- [Lightweight by Design](#lightweight-by-design)
+- [Quick Start](#quick-start)
+- [How It Works](#how-it-works)
+- [Configuration](#configuration)
+  - [Hotkey Tips](#hotkey-tips)
+- [What the Installer Does](#what-the-installer-does)
+  - [Files Installed](#files-installed)
+  - [Third-Party Software Installed](#third-party-software-installed)
+  - [Registry Entries](#registry-entries)
+  - [Optional Shortcuts](#optional-shortcuts)
+  - [What the Uninstaller Removes](#what-the-uninstaller-removes)
+  - [What ReadToMe Does NOT Do](#what-readtome-does-not-do)
+- [Troubleshooting](#troubleshooting)
+- [Developer Setup](#developer-setup)
+  - [Quick Start (Developer Mode)](#quick-start-developer-mode)
+  - [Manual Setup](#manual-setup)
+- [Building the Installer](#building-the-installer)
+  - [Building on Windows](#building-on-windows)
+  - [Cross-Compiling from Linux](#cross-compiling-from-linux)
+- [Voice Models](#voice-models)
+  - [Bundled Voices](#bundled-voices)
+  - [Downloading Additional Voices](#downloading-additional-voices)
+  - [Repackaging with Different Voices](#repackaging-with-different-voices)
+- [Project Scripts](#project-scripts)
+- [Project Structure](#project-structure)
+- [Dependencies](#dependencies)
+- [License](#license)
+
 ### Lightweight by Design
 
 ReadToMe was designed to run on **CPU only** — no GPU or dedicated graphics hardware is required. One of the core goals of this project is to make text-to-speech accessible on as many systems as possible, including resource-constrained environments.
