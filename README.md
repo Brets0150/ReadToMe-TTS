@@ -6,6 +6,17 @@ Built with [Piper TTS](https://github.com/rhasspy/piper) for fast, high-quality 
 
 > **Windows only.** This application was designed and tested exclusively for Windows. It has not been written for or tested on Linux or macOS.
 
+### Lightweight by Design
+
+ReadToMe was designed to run on **CPU only** — no GPU or dedicated graphics hardware is required. One of the core goals of this project is to make text-to-speech accessible on as many systems as possible, including resource-constrained environments.
+
+In testing, ReadToMe runs well on:
+- **Virtual machines** (including cloud-hosted VMs with no GPU passthrough)
+- **Desktops and servers with no dedicated graphics card**
+- **Systems with limited CPU resources**
+
+Even on modest hardware, the time from pressing the hotkey to hearing speech is **one second or less**. The Piper TTS engine is optimized for fast CPU inference, so you get near-instant, natural-sounding speech without heavy resource demands.
+
 ## Quick Start
 
 The fastest way to get started is to download the installer from the [Releases](../../releases) page and run it on your Windows system. The installer includes four bundled voice models and everything you need — no Python or additional setup required.
@@ -44,12 +55,92 @@ ReadToMe supports any key combination with at least two keys, including **modifi
 
 Using modifier-only hotkeys is recommended because many applications — especially **remote desktop clients** (RDP, Citrix, VMware Horizon, etc.) — perform full keystroke capture and forward all key combinations to the remote system. This means a hotkey like Ctrl+Shift+S pressed locally would be sent to the remote machine instead of triggering ReadToMe. Modifier keys on their own, however, are typically not forwarded in the same way, so a modifier-only hotkey like Alt+Shift will reliably trigger ReadToMe on the local machine regardless of what application has focus.
 
+## What the Installer Does
+
+ReadToMe is fully open source and we believe in complete transparency about what gets installed on your system. Here is everything the installer does and why.
+
+### Files Installed
+
+| What | Location | Why |
+|---|---|---|
+| ReadToMe application | `C:\Program Files\ReadToMe\` | The main application and all of its bundled dependencies (see [Dependencies](#dependencies) below). This is a self-contained build — **no Python installation is required**. The application, the Python runtime, and all libraries are packaged together by [PyInstaller](https://pyinstaller.org/). |
+| Voice model files | `C:\Program Files\ReadToMe\models\` | Four [Piper TTS](https://github.com/rhasspy/piper) neural voice models (`.onnx` files). These are the AI models that convert text to speech locally on your machine. No data is sent to the internet. |
+| Tray icon | `C:\Program Files\ReadToMe\readtome\resources\` | The system tray icon image displayed in your taskbar. |
+| User config | `%USERPROFILE%\.readtome\config.json` | Your settings (selected voice, hotkey, speed, pitch). Created on first launch, not by the installer. |
+| Log file | `%USERPROFILE%\.readtome\readtome.log` | Application log for troubleshooting. Created on first launch. |
+
+### Third-Party Software Installed
+
+| What | Why | Details |
+|---|---|---|
+| **Microsoft Visual C++ Redistributable** | Required runtime for Python and the ONNX neural network engine that powers text-to-speech. Without it, the application will silently fail to start on systems that don't already have it. | This is the official Microsoft package (`vc_redist.x64.exe`) downloaded from [Microsoft's website](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist). It is installed silently and only if your system doesn't already have it. Most Windows systems already have this installed by other software — in that case, the installer skips it entirely. |
+
+### Registry Entries
+
+| Key | Purpose | When |
+|---|---|---|
+| `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{...}` | Standard Windows uninstaller entry so ReadToMe appears in "Add or Remove Programs" | Always (created by Inno Setup) |
+| `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\ReadToMe` | Starts ReadToMe automatically when you log in | Only if you check "Start ReadToMe when Windows starts" during install |
+
+### Optional Shortcuts
+
+| Shortcut | When |
+|---|---|
+| Start Menu entry | Always |
+| Desktop shortcut | Only if you check "Create a desktop icon" during install |
+
+### What the Uninstaller Removes
+
+The uninstaller (accessible from "Add or Remove Programs") will:
+1. Stop any running ReadToMe process
+2. Remove all files from the installation directory (`C:\Program Files\ReadToMe\`)
+3. Remove the Start Menu and desktop shortcuts
+4. Remove the Windows startup registry entry (if it was created)
+5. Delete your config file and log file from `%USERPROFILE%\.readtome\`
+
+The uninstaller does **not** remove the Microsoft Visual C++ Redistributable, as other software on your system may depend on it.
+
+### What ReadToMe Does NOT Do
+
+- Does **not** send any data over the internet — all text-to-speech processing happens locally on your machine
+- Does **not** install any background services or drivers
+- Does **not** modify any system files
+- Does **not** collect telemetry, analytics, or usage data
+
+## Troubleshooting
+
+### Application won't start / silently exits
+
+ReadToMe always writes a log file to `%USERPROFILE%\.readtome\readtome.log`. Check this file for error details.
+
+For more verbose output, open a Command Prompt and run:
+
+```cmd
+"C:\Program Files\ReadToMe\ReadToMe.exe" -d
+```
+
+The `-d` (debug) flag enables detailed logging to both the log file and the console window.
+
+### Speech stops working after changing settings
+
+Occasionally, changing the voice, hotkey, or speed while the application is running may cause it to stop reading aloud. If this happens, close ReadToMe from the system tray and reopen it. Your configuration changes are saved automatically and will persist — the app should work normally after restarting.
+
+### Debug mode from a portable build
+
+If you're using the portable `.exe` (not the installer), open a Command Prompt in the same directory and run:
+
+```cmd
+ReadToMe.exe -d
+```
+
 ## Developer Setup
 
 ### Prerequisites
 
-- Python 3.10 or newer
+- **Python 3.12** (required — see note below)
 - Windows (for running the app)
+
+> **Why Python 3.12?** The built executable bundles the Python runtime and all native extensions. Python 3.14+ has known compatibility issues with NumPy's native libraries that cause the packaged application to crash on target systems. Python 3.12 is the most widely deployed version with the best library compatibility for PyInstaller builds. The build scripts enforce this version automatically.
 
 ### Quick Start (Developer Mode)
 
@@ -82,8 +173,8 @@ On Linux:
 If you prefer to set things up manually:
 
 ```powershell
-# Create and activate virtual environment
-python -m venv .venv
+# Create and activate virtual environment (must use Python 3.12)
+py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
 # Install in editable mode with dev dependencies
@@ -118,12 +209,16 @@ The build script handles everything automatically, including setting up a virtua
 The build script will:
 1. Create a `.venv` and install all dependencies (if not already present)
 2. Build the portable `.exe` with PyInstaller (builds to a local temp directory for speed)
-3. Download and install [Inno Setup 6](https://jrsoftware.org/isinfo.php) if not found (silent install)
-4. Build the Windows installer with Inno Setup
+3. Create portable zip files — a full zip with all 4 voices and a lite zip with only the Kristin voice
+4. Download the [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) (`vc_redist.x64.exe`) to `redist/` if not already present — this is bundled into the installer so end users don't need to install it separately
+5. Download and install [Inno Setup 6](https://jrsoftware.org/isinfo.php) if not found (silent install)
+6. Build the Windows installer with Inno Setup
 
 Output:
 - `dist\ReadToMe\ReadToMe.exe` — Portable application (no install needed, just run it)
-- `dist\installer\ReadToMe_Setup_0.2.0.exe` — Windows installer with setup wizard
+- `dist\ReadToMe_Portable_<version>.zip` — Full portable zip with all 4 bundled voices
+- `dist\ReadToMe_Portable_lite_<version>.zip` — Lite portable zip with Kristin voice only
+- `dist\installer\ReadToMe_Setup_<version>.exe` — Windows installer with setup wizard
 
 > **Note:** If the build reports that `dist\ReadToMe` is locked, close any running `ReadToMe.exe` or File Explorer windows that have the dist folder open, then re-run `build.bat`.
 
@@ -217,10 +312,12 @@ ReadToMe-TTS/
 ├── hooks/
 │   └── hook-sounddevice.py    # PyInstaller hook for sounddevice module
 ├── models/                    # Voice model files (git-ignored)
+├── redist/                    # VC++ Redistributable for installer (git-ignored)
 ├── installer/
 │   └── ReadToMe_Setup.iss     # Inno Setup installer script
 ├── pyproject.toml             # Python project config and dependencies
-└── readtome.spec              # PyInstaller build spec
+├── readtome.spec              # PyInstaller build spec
+└── CHANGELOG.md               # Version history and release notes
 ```
 
 ## Dependencies

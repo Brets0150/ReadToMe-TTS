@@ -91,6 +91,11 @@ if ! ls models/en_US-*.onnx &>/dev/null; then
 fi
 ok "Piper voice model(s) present"
 
+if [ ! -f "redist/vc_redist.x64.exe" ]; then
+    fail "VC++ Redistributable not found. Run ./setup-wine.sh first."
+fi
+ok "VC++ Redistributable present"
+
 # ── Clean previous builds ─────────────────────────────────────────────────
 step "Cleaning previous builds..."
 rm -rf dist build
@@ -103,7 +108,7 @@ BUILD_TMP="/tmp/readtome-build-$$"
 step "Preparing build workspace..."
 rm -rf "$BUILD_TMP"
 mkdir -p "$BUILD_TMP"
-cp -r readtome models readtome.spec installer "$BUILD_TMP/"
+cp -r readtome models redist readtome.spec installer "$BUILD_TMP/"
 ok "Copied source to $BUILD_TMP"
 
 # ── Run PyInstaller ────────────────────────────────────────────────────────

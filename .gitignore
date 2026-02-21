@@ -2,6 +2,7 @@ models/*.onnx
 models/*.onnx.json
 dist/
 build/
+redist/
 *.spec.bak
 __pycache__/
 *.pyc

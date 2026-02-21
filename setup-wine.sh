@@ -189,7 +189,18 @@ else
     ok "Inno Setup installed"
 fi
 
-# ── Step 6: Download model files ──────────────────────────────────────────
+# ── Step 6: Download VC++ Redistributable ─────────────────────────────────
+step "Downloading VC++ Redistributable..."
+mkdir -p redist
+if [ -f "redist/vc_redist.x64.exe" ]; then
+    ok "Already downloaded"
+else
+    echo "    Downloading Microsoft Visual C++ Redistributable..."
+    wget -q --show-progress -O "redist/vc_redist.x64.exe" "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    ok "VC++ Redistributable downloaded"
+fi
+
+# ── Step 7: Download model files ──────────────────────────────────────────
 step "Downloading bundled Piper voice models..."
 mkdir -p models
 

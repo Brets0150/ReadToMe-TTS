@@ -24,6 +24,12 @@ PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV_DIR="${PROJECT_DIR}/.venv"
 MODELS_DIR="${PROJECT_DIR}/models"
 
+# Required Python version — 3.14+ has known NumPy compatibility issues that
+# cause the built executable to crash on target systems.
+REQUIRED_PY_MAJOR=3
+REQUIRED_PY_MINOR=12
+REQUIRED_PY="${REQUIRED_PY_MAJOR}.${REQUIRED_PY_MINOR}"
+
 # The 4 bundled voices (medium quality)
 BUNDLED_VOICES=("amy" "kristin" "kusal" "ryan")
 QUALITY="medium"
@@ -56,15 +62,44 @@ echo -e "${CYAN} ReadToMe-TTS - Developer Setup${NC}"
 echo -e "${CYAN}============================================${NC}"
 echo ""
 
-# ── Step 1: Create virtual environment ────────────────────────────────────
+# ── Step 1: Create virtual environment with correct Python version ────────
 step=1
 if [ ! -f "${VENV_DIR}/bin/python" ]; then
-    echo -e "${YELLOW}[${step}/${STEP_COUNT}] Creating virtual environment...${NC}"
-    python3 -m venv "$VENV_DIR"
+    echo -e "${YELLOW}[${step}/${STEP_COUNT}] Creating virtual environment (Python ${REQUIRED_PY})...${NC}"
+
+    # Try python3.12, then python3, then python
+    PYTHON_CMD=""
+    for cmd in "python${REQUIRED_PY}" "python${REQUIRED_PY_MAJOR}" "python3" "python"; do
+        if command -v "$cmd" &>/dev/null; then
+            ver=$("$cmd" --version 2>&1 | grep -oP '\d+\.\d+')
+            if [ "$ver" = "$REQUIRED_PY" ]; then
+                PYTHON_CMD="$cmd"
+                break
+            fi
+        fi
+    done
+
+    if [ -z "$PYTHON_CMD" ]; then
+        echo -e "${RED}ERROR: Python ${REQUIRED_PY} not found!${NC}"
+        echo -e "${RED}       Install Python ${REQUIRED_PY} and ensure it's on your PATH.${NC}"
+        echo -e "${RED}       On Ubuntu/Debian: sudo apt install python${REQUIRED_PY} python${REQUIRED_PY}-venv${NC}"
+        exit 1
+    fi
+
+    "$PYTHON_CMD" -m venv "$VENV_DIR"
     echo -e "${GREEN}      Created: ${VENV_DIR}${NC}"
 else
     echo -e "${GREEN}[${step}/${STEP_COUNT}] Virtual environment exists${NC}"
 fi
+
+# Verify the venv Python version
+venv_ver=$("${VENV_DIR}/bin/python" --version 2>&1 | grep -oP '\d+\.\d+')
+if [ "$venv_ver" != "$REQUIRED_PY" ]; then
+    echo -e "${RED}WARNING: Virtual environment has Python ${venv_ver}, but ${REQUIRED_PY} is required.${NC}"
+    echo -e "${RED}         Delete .venv/ and re-run this script to recreate with the correct version.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}      Python version: $(${VENV_DIR}/bin/python --version 2>&1)${NC}"
 
 # ── Step 2: Install all dependencies (including dev/build tools) ──────────
 step=2
