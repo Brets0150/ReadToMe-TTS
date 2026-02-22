@@ -8,6 +8,7 @@ Built with [Piper TTS](https://github.com/rhasspy/piper) for fast, high-quality 
 
 ## Table of Contents
 
+- [Goal of This Project](#goal-of-this-project)
 - [Lightweight by Design](#lightweight-by-design)
 - [Quick Start](#quick-start)
 - [How It Works](#how-it-works)
@@ -35,6 +36,14 @@ Built with [Piper TTS](https://github.com/rhasspy/piper) for fast, high-quality 
 - [Project Structure](#project-structure)
 - [Dependencies](#dependencies)
 - [License](#license)
+
+## Goal of This Project
+
+This project was born out of a simple frustration: finding a text-to-speech solution that worked beyond a web browser and read only the text I actually selected. Many existing tools, particularly those designed for accessibility, read everything on the screen — buttons, window titles, and other interface elements I didn't care about. What I needed was a more targeted approach: highlight specific text in a text file, in ChatGPT, or in any other application, and have only that text read aloud.
+
+ReadToMe fills the gap between full screen readers that capture all on-screen content and the more precise tool I wanted — one that reads only highlighted text, nothing more. A key priority was also choosing a voice synthesis model that produces clear, natural-sounding speech without an overly robotic tone.
+
+As a bonus, when combined with the [OpenWhisper](https://github.com/OpenWhispr/openwhispr) project and configured with hotkeys, this setup significantly enhances workflow efficiency. By mapping these hotkeys to a macro mouse, I enabled full computer interaction using only the mouse — dictating text, having text read aloud, and executing commands like pressing Enter, all through dedicated mouse buttons. With these three macros alone, I rarely need to touch the keyboard. Together, these tools have created a highly efficient and time-saving workflow.
 
 ### Lightweight by Design
 
