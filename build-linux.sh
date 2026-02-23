@@ -14,7 +14,7 @@
 #
 # Output:
 #   dist/ReadToMe/ReadToMe.exe              — Portable Windows app
-#   dist/installer/ReadToMe_Setup_0.3.0.exe — Windows installer
+#   dist/installer/ReadToMe_Setup_0.3.1.exe — Windows installer
 #
 set -euo pipefail
 
@@ -130,7 +130,7 @@ mkdir -p "$BUILD_TMP/dist/installer"
 (cd "$BUILD_TMP" && wine_run "$WINE_ISCC" "installer\\ReadToMe_Setup.iss") \
     || fail "Inno Setup compilation failed"
 
-if [ -f "$BUILD_TMP/dist/installer/ReadToMe_Setup_0.3.0.exe" ]; then
+if [ -f "$BUILD_TMP/dist/installer/ReadToMe_Setup_0.3.1.exe" ]; then
     ok "Installer built successfully"
 else
     fail "Installer .exe not found in build output"
@@ -141,7 +141,7 @@ step "Copying build output to project directory..."
 cp -r "$BUILD_TMP/dist" "$PROJECT_DIR/"
 rm -rf "$BUILD_TMP"
 
-INSTALLER_EXE="dist/installer/ReadToMe_Setup_0.3.0.exe"
+INSTALLER_EXE="dist/installer/ReadToMe_Setup_0.3.1.exe"
 ok "Portable app:  dist/ReadToMe/ReadToMe.exe ($(du -h dist/ReadToMe/ReadToMe.exe | cut -f1))"
 ok "Installer:     ${INSTALLER_EXE} ($(du -h "$INSTALLER_EXE" | cut -f1))"
 

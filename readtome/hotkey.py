@@ -209,4 +209,10 @@ class HotkeyManager:
         except Exception:
             text = ""
 
+        # Restore the user's original clipboard content
+        try:
+            pyperclip.copy(old_clipboard)
+        except Exception:
+            logger.debug("Failed to restore clipboard contents")
+
         return text

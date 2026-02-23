@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-02-23
+
+### Fixed
+- Hotkey now preserves the user's clipboard — original clipboard content is saved before Ctrl+C text capture and restored afterward
+
+### Added
+- "Goal of This Project" section in README
+
 ## [0.3.0] - 2026-02-21
 
 ### Added
