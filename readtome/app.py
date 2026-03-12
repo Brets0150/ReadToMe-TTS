@@ -88,8 +88,7 @@ class ReadToMeApp:
         """Runs in worker thread. Synthesizes and plays audio."""
         self._speaking = True
         self._tray.update_tooltip("ReadToMe - Speaking...")
-        text_preview = text[:80] + ("..." if len(text) > 80 else "")
-        logger.debug("Speaking text (%d chars): %s", len(text), text_preview)
+        logger.debug("Speaking text (%d chars)", len(text))
         try:
             self._speak_streaming(text)
         except Exception as e:

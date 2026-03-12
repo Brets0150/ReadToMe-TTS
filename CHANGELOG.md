@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-03-10
+
+### Fixed
+- Installer now silently uninstalls any previous version before installing, preventing duplicate entries in Programs and Features when the install directory changed (e.g. upgrading from a version that installed to Program Files (x86))
+- Debug log no longer records any content of the highlighted text — only character count is logged
+
 ## [0.3.1] - 2026-02-23
 
 ### Fixed

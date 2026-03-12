@@ -5,7 +5,7 @@
 ; Or from command line: iscc installer\ReadToMe_Setup.iss
 
 #define MyAppName "ReadToMe"
-#define MyAppVersion "0.3.1"
+#define MyAppVersion "0.3.2"
 #define MyAppPublisher "ReadToMe"
 #define MyAppExeName "ReadToMe.exe"
 #define MyAppDescription "Highlight text anywhere and hear it read aloud"
@@ -92,5 +92,37 @@ begin
   begin
     if Installed = 1 then
       Result := False;
+  end;
+end;
+
+// Silently uninstall any previous version before installing the new one.
+// Required when the install directory changed between versions (e.g. Program
+// Files (x86) -> Program Files after the 64-bit architecture fix), which
+// prevents Inno Setup from upgrading cleanly using AppId alone.
+function GetPreviousUninstallString(): String;
+var
+  RegKey: String;
+  UninstallString: String;
+begin
+  RegKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{B8F3A1E2-7C4D-4E5F-9A1B-2C3D4E5F6A7B}_is1';
+  UninstallString := '';
+  if not RegQueryStringValue(HKLM, RegKey, 'UninstallString', UninstallString) then
+    RegQueryStringValue(HKCU, RegKey, 'UninstallString', UninstallString);
+  Result := UninstallString;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  UninstallString: String;
+  ResultCode: Integer;
+begin
+  if CurStep = ssInstall then
+  begin
+    UninstallString := GetPreviousUninstallString();
+    if UninstallString <> '' then
+    begin
+      UninstallString := RemoveQuotes(UninstallString);
+      Exec(UninstallString, '/SILENT /NORESTART /SUPPRESSMSGBOXES', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    end;
   end;
 end;

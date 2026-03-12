@@ -1,4 +1,4 @@
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 # GitHub repository for update checks (owner/repo format).
 # Developers who fork this project should change this to their own repository.
