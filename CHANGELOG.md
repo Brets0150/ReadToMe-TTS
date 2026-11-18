@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-18
+
+### Added
+- **Stop Speaking shortcut** — a second global hotkey (default **Ctrl+Alt**) that stops the current speech without exiting the app. Configurable via the new "Configure Stop Shortcut" tray menu item; a "Stop Speaking" tray menu item does the same on click
+- **Pause length menus** — "Sentence Pause" and "Comma Pause" tray submenus with presets from None to Very Long, replacing the config-file-only `sentence_pause_ms` / `comma_pause_ms` settings added in 0.3.3 (custom values can still be set in `config.json`)
+- Shortcut conflict protection — the read and stop shortcuts cannot be set to combinations that would trigger each other (including a modifier-only shortcut that is a subset of the other)
+- Tray tooltip now shows both the read and stop shortcuts
+- Build scripts now verify the build environment (piper-tts present, numpy < 2) before building and verify the TTS engine actually made it into the bundle after building, failing loudly instead of producing a broken installer
+
+### Changed
+- "Configure Shortcut" tray menu item renamed to "Configure Read Shortcut"
+
+## [0.3.3] - 2026-11-18
+
+### Changed
+- Much lower latency from hotkey press to speech:
+  - Clipboard capture now polls for the copied text instead of a fixed 150ms wait, typically saving 100ms+ per hotkey press
+  - A short warmup synthesis runs right after the voice model loads, so the first hotkey press no longer pays ONNX Runtime's slow first-inference cost
+- Much shorter pauses between sentences:
+  - Synthesis now runs ahead of playback in a pipeline — the next sentence is already synthesized when the current one finishes playing
+  - Audio playback keeps one output stream open for the whole utterance instead of opening a new audio device per sentence (which cost 100ms+ each on Windows)
+  - Long silences the voice model generates are automatically shortened: pauses at sentence ends/newlines are capped at 150ms and pauses around commas at 100ms (tunable via `sentence_pause_ms` and `comma_pause_ms` in `config.json`)
+- Long selections start speaking sooner: text is fed to the synthesizer line by line, so phonemization of the whole selection no longer has to finish before the first sentence plays
+
 ## [0.3.2] - 2026-03-10
 
 ### Fixed

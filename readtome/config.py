@@ -27,13 +27,37 @@ SPEED_PRESETS = {
     "2.0x": 2.0,
 }
 
+# Pause caps in milliseconds. Silences the voice model generates that are
+# longer than the cap get shortened to it during synthesis.
+SENTENCE_PAUSE_PRESETS = {
+    "None": 0,
+    "Short (100 ms)": 100,
+    "Normal (150 ms)": 150,
+    "Long (250 ms)": 250,
+    "Very Long (400 ms)": 400,
+}
+
+COMMA_PAUSE_PRESETS = {
+    "None": 0,
+    "Short (50 ms)": 50,
+    "Normal (100 ms)": 100,
+    "Long (200 ms)": 200,
+    "Very Long (300 ms)": 300,
+}
+
 
 @dataclass
 class Config:
     hotkey: str = "alt+shift"
+    stop_hotkey: str = "ctrl+alt"
     speed: float = 1.0
     pitch: float = 1.0
     model_path: str = ""
+    # Pause caps at sentence ends / line breaks and at commas, in
+    # milliseconds. Configurable from the tray menu; any value (not just
+    # the menu presets) can be set by editing config.json directly.
+    sentence_pause_ms: int = 150
+    comma_pause_ms: int = 100
 
     @classmethod
     def load(cls) -> "Config":

@@ -5,7 +5,13 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import pystray
 
-from readtome.config import Config, PITCH_PRESETS, SPEED_PRESETS
+from readtome.config import (
+    COMMA_PAUSE_PRESETS,
+    Config,
+    PITCH_PRESETS,
+    SENTENCE_PAUSE_PRESETS,
+    SPEED_PRESETS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +22,13 @@ class TrayIcon:
         on_quit,
         on_toggle_pause,
         on_configure_shortcut,
+        on_configure_stop_shortcut,
+        on_stop_speaking,
         on_change_voice,
         on_change_speed,
         on_change_pitch,
+        on_change_sentence_pause,
+        on_change_comma_pause,
         on_toggle_startup,
         on_check_update,
         is_paused,
@@ -27,13 +37,19 @@ class TrayIcon:
         get_current_voice,
         get_current_speed,
         get_current_pitch,
+        get_current_sentence_pause,
+        get_current_comma_pause,
     ):
         self._on_quit = on_quit
         self._on_toggle_pause = on_toggle_pause
         self._on_configure_shortcut = on_configure_shortcut
+        self._on_configure_stop_shortcut = on_configure_stop_shortcut
+        self._on_stop_speaking = on_stop_speaking
         self._on_change_voice = on_change_voice
         self._on_change_speed = on_change_speed
         self._on_change_pitch = on_change_pitch
+        self._on_change_sentence_pause = on_change_sentence_pause
+        self._on_change_comma_pause = on_change_comma_pause
         self._on_toggle_startup = on_toggle_startup
         self._on_check_update = on_check_update
         self._is_paused = is_paused
@@ -42,6 +58,8 @@ class TrayIcon:
         self._get_current_voice = get_current_voice
         self._get_current_speed = get_current_speed
         self._get_current_pitch = get_current_pitch
+        self._get_current_sentence_pause = get_current_sentence_pause
+        self._get_current_comma_pause = get_current_comma_pause
         self._icon: pystray.Icon | None = None
 
     def _create_icon_image(self) -> Image.Image:
@@ -132,22 +150,60 @@ class TrayIcon:
             )
         return pystray.Menu(*items)
 
+    def _build_pause_menu(self, presets: dict, get_current, on_change):
+        """Build a submenu of pause-length presets (sentence or comma)."""
+        items = []
+        for label, value in presets.items():
+            def make_action(v):
+                return lambda icon, item: on_change(v)
+
+            def make_checked(v):
+                return lambda item: get_current() == v
+
+            items.append(
+                pystray.MenuItem(
+                    label,
+                    make_action(value),
+                    checked=make_checked(value),
+                )
+            )
+        return pystray.Menu(*items)
+
     def _build_menu(self):
         return pystray.Menu(
             pystray.MenuItem(
                 lambda item: self._get_status(), enabled=False, action=None
             ),
             pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Stop Speaking", self._on_stop_speaking),
+            pystray.Menu.SEPARATOR,
             pystray.MenuItem("Voice", self._build_voice_menu()),
             pystray.MenuItem("Speed", self._build_speed_menu()),
             pystray.MenuItem("Pitch", self._build_pitch_menu()),
+            pystray.MenuItem(
+                "Sentence Pause",
+                self._build_pause_menu(
+                    SENTENCE_PAUSE_PRESETS,
+                    self._get_current_sentence_pause,
+                    self._on_change_sentence_pause,
+                ),
+            ),
+            pystray.MenuItem(
+                "Comma Pause",
+                self._build_pause_menu(
+                    COMMA_PAUSE_PRESETS,
+                    self._get_current_comma_pause,
+                    self._on_change_comma_pause,
+                ),
+            ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
                 "Pause",
                 self._on_toggle_pause,
                 checked=lambda item: self._is_paused(),
             ),
-            pystray.MenuItem("Configure Shortcut", self._on_configure_shortcut),
+            pystray.MenuItem("Configure Read Shortcut", self._on_configure_shortcut),
+            pystray.MenuItem("Configure Stop Shortcut", self._on_configure_stop_shortcut),
             pystray.MenuItem(
                 "Start on Login",
                 self._on_toggle_startup,

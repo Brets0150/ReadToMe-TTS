@@ -5,7 +5,7 @@
 ; Or from command line: iscc installer\ReadToMe_Setup.iss
 
 #define MyAppName "ReadToMe"
-#define MyAppVersion "0.3.2"
+#define MyAppVersion "0.4.0"
 #define MyAppPublisher "ReadToMe"
 #define MyAppExeName "ReadToMe.exe"
 #define MyAppDescription "Highlight text anywhere and hear it read aloud"

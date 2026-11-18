@@ -25,6 +25,24 @@ def _is_modifier_only(hotkey: str) -> bool:
     return all(p in _MODIFIER_NAMES for p in parts)
 
 
+def combos_conflict(a: str, b: str) -> bool:
+    """Return True if two hotkey combos would interfere with each other.
+
+    A modifier-only combo fires whenever its modifiers are held, so it also
+    fires while any superset combo is being pressed — those count as
+    conflicts, not just exact matches.
+    """
+    parts_a = {_normalize_modifier(p.strip()) for p in a.lower().split("+")}
+    parts_b = {_normalize_modifier(p.strip()) for p in b.lower().split("+")}
+    if parts_a == parts_b:
+        return True
+    if _is_modifier_only(a) and parts_a <= parts_b:
+        return True
+    if _is_modifier_only(b) and parts_b <= parts_a:
+        return True
+    return False
+
+
 def _normalize_modifier(name: str) -> str:
     """Map modifier key names to a canonical form for comparison."""
     n = name.lower().strip()
@@ -40,9 +58,17 @@ def _normalize_modifier(name: str) -> str:
 
 
 class HotkeyManager:
-    def __init__(self, hotkey: str, callback):
+    def __init__(self, hotkey: str, callback, capture_text: bool = True):
+        """Manage one global hotkey.
+
+        With capture_text=True (default), pressing the hotkey simulates
+        Ctrl+C and the callback receives the copied text. With
+        capture_text=False the callback is invoked with no arguments —
+        used for action shortcuts like Stop Speaking.
+        """
         self._hotkey = hotkey
         self._callback = callback
+        self._capture_text = capture_text
         self._registered = False
         self._capturing = False
         # For modifier-only hotkeys
@@ -141,6 +167,7 @@ class HotkeyManager:
 
     def _do_capture(self, on_captured):
         """Block until user presses a key combo, then validate it."""
+        was_registered = self._registered
         try:
             # Temporarily unregister so the current hotkey doesn't fire
             self.unregister()
@@ -166,13 +193,18 @@ class HotkeyManager:
             on_captured(None)
         finally:
             self._capturing = False
-            # Re-register (caller should rebind if a valid combo was captured)
-            if not self._registered:
+            # Re-register the old hotkey unless the caller rebound to a new
+            # one — and only if it was registered before capture started
+            # (it may have been left off due to a shortcut conflict).
+            if was_registered and not self._registered:
                 self.register()
 
     def _on_hotkey(self):
         """Called in keyboard listener thread when hotkey is pressed."""
         if self._capturing:
+            return
+        if not self._capture_text:
+            self._callback()
             return
         text = self._capture_selected_text()
         if text and text.strip():
@@ -199,15 +231,24 @@ class HotkeyManager:
         # alt+shift+ctrl+c (etc.) which doesn't copy.
         deadline = time.monotonic() + 1.0  # 1 second timeout
         while keyboard._pressed_events and time.monotonic() < deadline:
-            time.sleep(0.02)
-        time.sleep(0.05)
+            time.sleep(0.01)
+        time.sleep(0.02)
         keyboard.send("ctrl+c")
-        time.sleep(0.15)
 
-        try:
-            text = pyperclip.paste()
-        except Exception:
-            text = ""
+        # Poll the clipboard instead of a fixed wait — most applications
+        # fill it within a few tens of milliseconds, so this typically
+        # returns 100ms+ sooner than a fixed sleep. The clipboard was
+        # cleared above, so any non-empty content is the new copy.
+        text = ""
+        deadline = time.monotonic() + 0.5
+        while time.monotonic() < deadline:
+            try:
+                text = pyperclip.paste()
+            except Exception:
+                text = ""
+            if text:
+                break
+            time.sleep(0.01)
 
         # Restore the user's original clipboard content
         try:

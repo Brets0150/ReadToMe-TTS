@@ -13,13 +13,15 @@
 #   Run setup-wine.sh first (one-time).
 #
 # Output:
-#   dist/ReadToMe/ReadToMe.exe              — Portable Windows app
-#   dist/installer/ReadToMe_Setup_0.3.2.exe — Windows installer
+#   dist/ReadToMe/ReadToMe.exe                   — Portable Windows app
+#   dist/installer/ReadToMe_Setup_<version>.exe  — Windows installer
 #
 set -euo pipefail
 
 # ── Configuration ──────────────────────────────────────────────────────────
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Version is read from pyproject.toml so it stays in sync with the project
+VERSION="$(grep -m1 '^version' "$PROJECT_DIR/pyproject.toml" | sed 's/.*"\(.*\)".*/\1/')"
 WINEPREFIX="${HOME}/.wine-readtome"
 WINE_PYTHON="C:\\Python312\\python.exe"
 WINE_ISCC="C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"
@@ -86,6 +88,21 @@ if ! wine_run "$WINE_PYTHON" --version &>/dev/null; then
 fi
 ok "Windows Python: $(wine_run "$WINE_PYTHON" --version 2>&1)"
 
+# Guard against a modified/broken Wine environment: a missing piper-tts
+# only produces non-fatal PyInstaller warnings, and the resulting app
+# builds fine but ships without the TTS engine (this happened with v0.3.3).
+if ! wine_run "$WINE_PYTHON" -c "import piper.voice" &>/dev/null; then
+    fail "piper-tts is not importable in the Wine Python. Install it with:
+        WINEPREFIX=~/.wine-readtome wine 'C:\\Python312\\python.exe' -m pip install 'piper-tts==1.4.1' 'numpy<2'"
+fi
+ok "piper-tts importable in build environment"
+
+if ! wine_run "$WINE_PYTHON" -c "import numpy; exit(0 if int(numpy.__version__.split('.')[0]) < 2 else 1)" &>/dev/null; then
+    fail "numpy >= 2.0 found in Wine Python — this project requires numpy < 2 (see pyproject.toml). Install with:
+        WINEPREFIX=~/.wine-readtome wine 'C:\\Python312\\python.exe' -m pip install 'numpy<2'"
+fi
+ok "numpy version compatible (<2.0)"
+
 if ! ls models/en_US-*.onnx &>/dev/null; then
     fail "No Piper voice models in models/. Run ./download-voices.sh first."
 fi
@@ -123,6 +140,15 @@ else
     fail "ReadToMe.exe not found in build output"
 fi
 
+# Verify critical packages actually made it into the bundle — PyInstaller
+# reports missing hidden imports as warnings, not errors.
+for bundled in piper piper/espeak-ng-data models onnxruntime; do
+    if [ ! -e "$BUILD_TMP/dist/ReadToMe/_internal/$bundled" ]; then
+        fail "'$bundled' missing from the bundled app — the exe would not work. Check the Wine Python environment."
+    fi
+done
+ok "Bundle contents verified (piper, espeak data, models, onnxruntime)"
+
 # ── Run Inno Setup ─────────────────────────────────────────────────────────
 step "Building Windows installer with Inno Setup..."
 mkdir -p "$BUILD_TMP/dist/installer"
@@ -130,7 +156,7 @@ mkdir -p "$BUILD_TMP/dist/installer"
 (cd "$BUILD_TMP" && wine_run "$WINE_ISCC" "installer\\ReadToMe_Setup.iss") \
     || fail "Inno Setup compilation failed"
 
-if [ -f "$BUILD_TMP/dist/installer/ReadToMe_Setup_0.3.2.exe" ]; then
+if [ -f "$BUILD_TMP/dist/installer/ReadToMe_Setup_${VERSION}.exe" ]; then
     ok "Installer built successfully"
 else
     fail "Installer .exe not found in build output"
@@ -141,7 +167,31 @@ step "Copying build output to project directory..."
 cp -r "$BUILD_TMP/dist" "$PROJECT_DIR/"
 rm -rf "$BUILD_TMP"
 
-INSTALLER_EXE="dist/installer/ReadToMe_Setup_0.3.2.exe"
+# ── Create portable zips (parity with build.bat step 3) ───────────────────
+# Full zip: all bundled voices. Lite zip: Kristin voice only.
+# Layout matches build.bat: ReadToMe.exe and _internal/ at the zip root.
+step "Creating portable zip files..."
+ZIP_FULL="dist/ReadToMe_Portable_${VERSION}.zip"
+ZIP_LITE="dist/ReadToMe_Portable_lite_${VERSION}.zip"
+rm -f "$ZIP_FULL" "$ZIP_LITE"
+
+(cd dist/ReadToMe && zip -q -r -9 "../../$ZIP_FULL" .) \
+    || fail "Failed to create full portable zip"
+ok "Full zip: $ZIP_FULL ($(du -h "$ZIP_FULL" | cut -f1))"
+
+LITE_TMP="$(mktemp -d /tmp/readtome-lite-XXXXXX)"
+cp -r dist/ReadToMe "$LITE_TMP/ReadToMe"
+rm -f "$LITE_TMP"/ReadToMe/_internal/models/en_US-*.onnx \
+      "$LITE_TMP"/ReadToMe/_internal/models/en_US-*.onnx.json
+cp dist/ReadToMe/_internal/models/en_US-kristin-medium.onnx \
+   dist/ReadToMe/_internal/models/en_US-kristin-medium.onnx.json \
+   "$LITE_TMP/ReadToMe/_internal/models/"
+(cd "$LITE_TMP/ReadToMe" && zip -q -r -9 "$PROJECT_DIR/$ZIP_LITE" .) \
+    || fail "Failed to create lite portable zip"
+rm -rf "$LITE_TMP"
+ok "Lite zip: $ZIP_LITE ($(du -h "$ZIP_LITE" | cut -f1))"
+
+INSTALLER_EXE="dist/installer/ReadToMe_Setup_${VERSION}.exe"
 ok "Portable app:  dist/ReadToMe/ReadToMe.exe ($(du -h dist/ReadToMe/ReadToMe.exe | cut -f1))"
 ok "Installer:     ${INSTALLER_EXE} ($(du -h "$INSTALLER_EXE" | cut -f1))"
 

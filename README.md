@@ -78,16 +78,22 @@ After launching ReadToMe, look for the icon in your Windows system tray (bottom-
 
 | Menu Item | Description |
 |---|---|
+| **Stop Speaking** | Stop the current speech (same as the stop shortcut) |
 | **Voice** | Choose from available Piper voice models (checkmark shows current) |
 | **Speed** | Adjust reading speed (0.75x to 2.0x) |
 | **Pitch** | Adjust voice pitch (Very Low to Very High) |
+| **Sentence Pause** | Maximum pause at sentence ends and line breaks (None to Very Long) |
+| **Comma Pause** | Maximum pause inside a sentence — commas, dashes, etc. (None to Very Long) |
 | **Pause** | Temporarily disable the hotkey (toggle) |
-| **Configure Shortcut** | Set a new hotkey — any 2+ key combination, including modifier-only combos |
+| **Configure Read Shortcut** | Set a new read-aloud hotkey — any 2+ key combination, including modifier-only combos |
+| **Configure Stop Shortcut** | Set a new stop-speaking hotkey |
 | **Start on Login** | Toggle automatic startup when you log into Windows |
 | **Check for Updates** | Check GitHub for a newer release and optionally download/install it |
 | **Quit** | Exit the application |
 
-The default hotkey is **Alt+Shift**. Your settings are saved to `%USERPROFILE%\.readtome\config.json` and persist across restarts.
+The default read shortcut is **Alt+Shift** and the default stop shortcut is **Ctrl+Alt**. The two shortcuts cannot be set to combinations that would trigger each other. Your settings are saved to `%USERPROFILE%\.readtome\config.json` and persist across restarts.
+
+The pause settings cap the silences the voice model naturally generates: any silence longer than the cap is shortened to it, and shorter pauses are left alone. The menu presets cover common values; any custom millisecond value can be set by editing `sentence_pause_ms` / `comma_pause_ms` in `config.json` directly (while ReadToMe is not running).
 
 ### Hotkey Tips
 

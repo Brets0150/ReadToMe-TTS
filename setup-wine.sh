@@ -161,13 +161,13 @@ wine_run "$WINE_PYTHON" -c "import sys; print(f'    Python {sys.version} on {sys
 step "Installing Python packages (pip)..."
 echo "    This may take a few minutes on first run..."
 wine_run "$WINE_PYTHON" -m pip install \
-    piper-tts \
+    "piper-tts==1.4.1" \
     sounddevice \
     keyboard \
     pyperclip \
     pystray \
     Pillow \
-    numpy \
+    "numpy<2" \
     pyinstaller \
     --no-warn-script-location \
     2>&1 | tail -5

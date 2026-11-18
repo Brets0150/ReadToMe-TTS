@@ -1,10 +1,11 @@
 import logging
+import queue
 import threading
 import time
 
 from readtome.audio_player import AudioPlayer
 from readtome.config import Config
-from readtome.hotkey import HotkeyManager
+from readtome.hotkey import HotkeyManager, combos_conflict
 from readtome.tray import TrayIcon
 from readtome.tts_engine import TTSEngine
 
@@ -19,13 +20,20 @@ class ReadToMeApp:
         self._tts = TTSEngine(self._config)
         self._player = AudioPlayer()
         self._hotkey = HotkeyManager(self._config.hotkey, self._on_text_captured)
+        self._stop_hotkey = HotkeyManager(
+            self._config.stop_hotkey, self._stop_speaking, capture_text=False
+        )
         self._tray = TrayIcon(
             on_quit=self._quit,
             on_toggle_pause=self._toggle_pause,
             on_configure_shortcut=self._configure_shortcut,
+            on_configure_stop_shortcut=self._configure_stop_shortcut,
+            on_stop_speaking=lambda icon, item: self._stop_speaking(),
             on_change_voice=self._change_voice,
             on_change_speed=self._change_speed,
             on_change_pitch=self._change_pitch,
+            on_change_sentence_pause=self._change_sentence_pause,
+            on_change_comma_pause=self._change_comma_pause,
             on_toggle_startup=self._toggle_startup,
             on_check_update=self._check_for_updates,
             is_paused=lambda: self._paused,
@@ -34,6 +42,8 @@ class ReadToMeApp:
             get_current_voice=lambda: self._config.model_path,
             get_current_speed=lambda: self._config.speed,
             get_current_pitch=lambda: self._config.pitch,
+            get_current_sentence_pause=lambda: self._config.sentence_pause_ms,
+            get_current_comma_pause=lambda: self._config.comma_pause_ms,
         )
 
         self._paused = False
@@ -46,12 +56,25 @@ class ReadToMeApp:
         model_thread.start()
 
         self._hotkey.register()
+        # A pre-existing custom read shortcut may collide with the stop
+        # shortcut default (e.g. config from an older version). Leave the
+        # stop hotkey unregistered in that case — the tray "Stop Speaking"
+        # item still works and a new stop shortcut can be configured.
+        if combos_conflict(self._config.hotkey, self._config.stop_hotkey):
+            logger.warning(
+                "Stop shortcut '%s' conflicts with read shortcut '%s' — "
+                "not registering it. Set a new one via Configure Stop Shortcut.",
+                self._config.stop_hotkey, self._config.hotkey,
+            )
+        else:
+            self._stop_hotkey.register()
         self._tray.run()  # Blocks main thread
 
     def _load_model(self, model_path: str | None = None):
         self._tray.update_tooltip("ReadToMe - Loading voice...")
         try:
             self._tts.load_model(model_path)
+            self._tts.warmup()
             self._update_ready_tooltip()
             logger.info("Model loaded, ready to use")
         except Exception as e:
@@ -59,9 +82,12 @@ class ReadToMeApp:
             self._tray.update_tooltip(f"ReadToMe - ERROR: {e}")
 
     def _update_ready_tooltip(self):
-        hotkey_display = self._hotkey.current_hotkey.replace("+", "+").title()
         voice_name = self._config.get_voice_display_name()
-        self._tray.update_tooltip(f"ReadToMe - {voice_name} ({hotkey_display})")
+        read_hk = self._hotkey.current_hotkey.title()
+        stop_hk = self._stop_hotkey.current_hotkey.title()
+        self._tray.update_tooltip(
+            f"ReadToMe - {voice_name} (Read: {read_hk} / Stop: {stop_hk})"
+        )
 
     def _on_text_captured(self, text: str):
         """Called from hotkey thread when text is captured."""
@@ -99,34 +125,71 @@ class ReadToMeApp:
                 self._update_ready_tooltip()
 
     def _speak_streaming(self, text: str):
-        """Stream synthesis: play each sentence chunk as it's generated."""
+        """Pipelined synthesis and playback.
+
+        A producer thread synthesizes sentence chunks ahead into a bounded
+        queue while this thread plays them, so the next sentence is already
+        synthesized when the current one finishes — no synthesis pause at
+        sentence boundaries.
+        """
         self._player.reset()
-        chunk_num = 0
         t_start = time.perf_counter()
-        t_first_chunk = None
+        chunk_queue: queue.Queue = queue.Queue(maxsize=8)
+        # Per-utterance cancel flag: the player's stop flag is reset by the
+        # next utterance, so a lingering producer can't rely on it alone.
+        cancel = threading.Event()
 
-        for samples, sr in self._tts.synthesize_stream(text):
-            chunk_num += 1
-            if t_first_chunk is None:
-                t_first_chunk = time.perf_counter() - t_start
-                logger.debug(
-                    "First chunk in %.2fs (%d samples, %.1fs audio @ %dHz)",
-                    t_first_chunk, len(samples), len(samples) / sr, sr,
-                )
-            else:
-                logger.debug(
-                    "Chunk %d: %d samples (%.1fs audio)",
-                    chunk_num, len(samples), len(samples) / sr,
-                )
+        def produce():
+            chunk_num = 0
+            try:
+                for samples, sr in self._tts.synthesize_stream(text):
+                    chunk_num += 1
+                    if chunk_num == 1:
+                        logger.debug(
+                            "First chunk in %.2fs (%d samples, %.1fs audio @ %dHz)",
+                            time.perf_counter() - t_start,
+                            len(samples), len(samples) / sr, sr,
+                        )
+                    while not cancel.is_set():
+                        try:
+                            chunk_queue.put((samples, sr), timeout=0.2)
+                            break
+                        except queue.Full:
+                            pass
+                    if cancel.is_set():
+                        logger.debug("Cancelled, synthesis ending at chunk %d", chunk_num)
+                        return
+            except Exception as e:
+                logger.error("Synthesis error: %s", e, exc_info=True)
+            finally:
+                while not cancel.is_set():
+                    try:
+                        chunk_queue.put(None, timeout=0.2)  # end-of-stream marker
+                        break
+                    except queue.Full:
+                        pass
 
-            if self._player.is_stopped:
-                logger.debug("Stop requested, breaking at chunk %d", chunk_num)
-                break
+        def chunks():
+            while not (cancel.is_set() or self._player.is_stopped):
+                try:
+                    item = chunk_queue.get(timeout=0.2)
+                except queue.Empty:
+                    continue
+                if item is None:
+                    return
+                yield item
 
-            self._player.play(samples, sr)
+        producer = threading.Thread(target=produce, daemon=True)
+        producer.start()
+        try:
+            self._player.play_chunks(chunks())
+        finally:
+            cancel.set()
 
-        t_total = time.perf_counter() - t_start
-        logger.debug("Streaming complete: %d chunks in %.2fs", chunk_num, t_total)
+        producer.join(timeout=5.0)
+        if producer.is_alive():
+            logger.warning("Synthesis thread still running after playback ended")
+        logger.debug("Streaming complete in %.2fs", time.perf_counter() - t_start)
 
     # ── Voice / Speed / Pitch handlers ───────────────────────────────────
 
@@ -158,6 +221,24 @@ class ReadToMeApp:
         self._config.pitch = pitch
         self._config.save()
 
+    def _change_sentence_pause(self, ms: int):
+        logger.info("Sentence pause changed to %dms", ms)
+        self._config.sentence_pause_ms = ms
+        self._config.save()
+
+    def _change_comma_pause(self, ms: int):
+        logger.info("Comma pause changed to %dms", ms)
+        self._config.comma_pause_ms = ms
+        self._config.save()
+
+    def _stop_speaking(self):
+        """Stop current speech without affecting anything else."""
+        if self._speaking:
+            logger.info("Stop Speaking triggered")
+            self._player.stop()
+        else:
+            logger.debug("Stop Speaking triggered but nothing is playing")
+
     # ── Other handlers ───────────────────────────────────────────────────
 
     def _toggle_startup(self, icon, item):
@@ -168,23 +249,50 @@ class ReadToMeApp:
 
     def _configure_shortcut(self, icon, item):
         """Called from tray menu. Starts hotkey capture mode."""
-        logger.info("Configure Shortcut clicked — waiting for key combination...")
-        self._tray.update_tooltip("ReadToMe - Press your new shortcut now...")
+        logger.info("Configure Read Shortcut clicked — waiting for key combination...")
+        self._tray.update_tooltip("ReadToMe - Press your new read shortcut now...")
         self._hotkey.capture_new_hotkey(self._on_hotkey_captured)
+
+    def _configure_stop_shortcut(self, icon, item):
+        """Called from tray menu. Starts capture mode for the stop shortcut."""
+        logger.info("Configure Stop Shortcut clicked — waiting for key combination...")
+        self._tray.update_tooltip("ReadToMe - Press your new stop shortcut now...")
+        self._stop_hotkey.capture_new_hotkey(self._on_stop_hotkey_captured)
+
+    def _reject_shortcut(self, reason: str):
+        logger.warning("Invalid shortcut: %s", reason)
+        self._tray.update_tooltip(f"ReadToMe - {reason}, keeping old one")
+        time.sleep(2)
+        self._update_ready_tooltip()
 
     def _on_hotkey_captured(self, new_hotkey: str | None):
         """Called from capture thread when user presses a key combo."""
         if new_hotkey is None:
-            logger.warning("Invalid shortcut — must be at least a 2-key combination")
-            self._tray.update_tooltip("ReadToMe - Invalid shortcut, keeping old one")
-            time.sleep(2)
-            self._update_ready_tooltip()
+            self._reject_shortcut("Invalid shortcut (needs 2+ keys)")
+            return
+        if combos_conflict(new_hotkey, self._stop_hotkey.current_hotkey):
+            self._reject_shortcut("Shortcut conflicts with Stop shortcut")
             return
 
         self._hotkey.rebind(new_hotkey)
         self._config.hotkey = new_hotkey
         self._config.save()
-        logger.info("Shortcut changed to: %s (saved to config)", new_hotkey)
+        logger.info("Read shortcut changed to: %s (saved to config)", new_hotkey)
+        self._update_ready_tooltip()
+
+    def _on_stop_hotkey_captured(self, new_hotkey: str | None):
+        """Called from capture thread when user presses a key combo."""
+        if new_hotkey is None:
+            self._reject_shortcut("Invalid shortcut (needs 2+ keys)")
+            return
+        if combos_conflict(new_hotkey, self._hotkey.current_hotkey):
+            self._reject_shortcut("Shortcut conflicts with Read shortcut")
+            return
+
+        self._stop_hotkey.rebind(new_hotkey)
+        self._config.stop_hotkey = new_hotkey
+        self._config.save()
+        logger.info("Stop shortcut changed to: %s (saved to config)", new_hotkey)
         self._update_ready_tooltip()
 
     def _toggle_pause(self, icon, item):
@@ -216,4 +324,5 @@ class ReadToMeApp:
     def _quit(self, icon, item):
         self._player.stop()
         self._hotkey.unregister()
+        self._stop_hotkey.unregister()
         self._tray.stop()

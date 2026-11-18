@@ -9,3 +9,6 @@ __pycache__/
 *.egg-info/
 .venv/
 .wine-build/
+
+# Raw session transcripts stay local-only (may contain machine-local paths)
+history/sessions/
