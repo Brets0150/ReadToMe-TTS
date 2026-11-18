@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added
+- Test suite (`tests/`, 47 tests) covering silence/pause capping, the synthesis/playback pipeline, hotkey conflict rules, config persistence, and the tray menu structure; runs cross-platform with Windows-only dependencies stubbed
+
 ## [0.4.0] - 2026-11-18
 
 ### Added

@@ -9,7 +9,7 @@ _Last updated: 2026-11-18 by Claude Code / Fable 5_
 - **Released.** Pushed to origin and published: https://github.com/Brets0150/ReadToMe-TTS/releases/tag/v0.4.0 with all 3 assets (sizes verified against local files). GitHub auth now available on this machine via `~/.local/bin/gh` (device-flow login as Brets0150).
 
 ## Next steps
-1. Consider committing a `tests/` directory (standalone suites currently live only in the Claude session scratchpad).
+- None pending. Test suite committed under `tests/` (47 tests, cross-platform via dependency stubs in conftest.py); run with `pytest`.
 
 ## Key facts
 - Build: `./build-linux.sh` — now also creates the portable zips (parity with build.bat) and verifies the build env + bundle contents (see P-0001; do NOT let other experiments touch `~/.wine-readtome`).

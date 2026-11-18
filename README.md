@@ -231,6 +231,17 @@ pip install -e ".[dev]"
 python -m readtome --debug
 ```
 
+### Running Tests
+
+The test suite covers the application's logic (pause capping, the playback
+pipeline, hotkey conflict rules, config persistence, and the tray menu
+structure) and runs on any platform — Windows-only dependencies are stubbed
+automatically when they aren't available:
+
+```bash
+pytest
+```
+
 ## Building the Installer
 
 The build process has two stages:
