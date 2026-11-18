@@ -11,3 +11,12 @@ Append via `history/tools/log-entry.sh <project> session "<title>"`. Format: `hi
 - **Unfinished/next:** User to install+test dist/installer/ReadToMe_Setup_0.4.0.exe. On approval: commit all changes, tag v0.4.0, create GitHub release with installer+portable zips, push. Nothing committed yet.
 - **Transcript file:** (Claude Code session 96140cbb, hooks not installed)
 
+
+### S-0002 — 2026-11-18 — v0.4.0 committed+tagged; release kit ready, push pending user auth
+- **Logged:** 2026-11-18 21:04 UTC by Claude Code / Fable 5
+- **Tool/model:** Claude Code / Fable 5
+- **Did:** User confirmed v0.4.0 works (tray menu issue was an external overlay, P-0002). Added portable-zip creation to build-linux.sh (parity with build.bat), produced and verified ReadToMe_Portable_0.4.0.zip (all voices) and _lite_ (Kristin only) matching the v0.3.2 release asset pattern. Wrote release notes (dist/release_notes_0.4.0.md). Committed everything as c255a3a ("v0.4.0 - See CHANGELOG for details"), tagged v0.4.0. Excluded raw session transcripts from git (.gitignore history/sessions/) — they contained local machine paths; curated logs are committed.
+- **Entries:** P-0002
+- **Unfinished/next:** Push main + v0.4.0 tag and create the GitHub release with the 3 dist/ assets — blocked on credentials (no gh CLI or stored token on this machine); exact commands in STATUS.md and given to user.
+- **Transcript file:** history/sessions/2026-11-18_96140cbb.md (local only, not in git)
+
